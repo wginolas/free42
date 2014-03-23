@@ -27,6 +27,8 @@
 #include "core_sto_rcl.h"
 #include "core_tables.h"
 #include "core_variables.h"
+#include "ebmlreader.h"
+#include "ebmlwriter.h"
 #include "shell.h"
 #include "shell_spool.h"
 
@@ -49,6 +51,9 @@ int repeating_key;
 static int4 oldpc;
 
 core_settings_struct core_settings;
+
+ebmlreader *state_reader = NULL;
+ebmlwriter *state_writer = NULL;
 
 void core_init(int read_saved_state, int4 version) {
 

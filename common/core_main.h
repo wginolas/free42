@@ -335,6 +335,16 @@ typedef struct {
 
 extern core_settings_struct core_settings;
 
+/* state_reader, state_writer
+ *
+ * These are EBML reader and writer instances, used for reading and writing the
+ * new EBML-based cross-platform state file format, introduced in release 1.5.1.
+ */
+class ebmlreader;
+extern ebmlreader *state_reader;
+class ebmlwriter;
+extern ebmlwriter *state_writer;
+
 
 /*******************/
 /* Keyboard repeat */

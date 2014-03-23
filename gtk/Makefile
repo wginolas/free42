@@ -25,6 +25,7 @@ CXXFLAGS := -MMD \
 	    -fno-rtti \
 	    $(shell pkg-config --cflags gtk+-2.0) \
 	    -DVERSION="\"$(shell cat ../VERSION)\"" \
+	    -DPLATFORM="\"GTK-$(shell uname -m)\"" \
 	    -DDECIMAL_CALL_BY_REFERENCE=1 \
 	    -DDECIMAL_GLOBAL_ROUNDING=1 \
 	    -DDECIMAL_GLOBAL_ROUNDING_ACCESS_FUNCTIONS=1 \

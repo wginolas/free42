@@ -37,6 +37,9 @@
 #include "shell_spool.h"
 #include "core_main.h"
 #include "core_display.h"
+#include "ebmlreader.h"
+#include "ebmlwriter.h"
+#include "ebml_dtd.h"
 #include "icon.xpm"
 
 #ifndef _POSIX_HOST_NAME_MAX
@@ -113,9 +116,11 @@ static int keymap_length = 0;
 static keymap_entry *keymap = NULL;
 
 static guint reminder_id = 0;
-static FILE *statefile = NULL;
 static char statefilename[FILENAMELEN];
 static char printfilename[FILENAMELEN];
+
+/* For state file versions <= 18 (pre-EBML) */
+static FILE *statefile = NULL;
 
 static int ann_updown = 0;
 static int ann_shift = 0;
@@ -128,6 +133,7 @@ static int ann_rad = 0;
 
 /* Private functions */
 
+static void backup_state_file();
 static void read_key_map(const char *keymapfilename);
 static void init_shell_state(int4 version);
 static int read_shell_state(int4 *version);
@@ -315,19 +321,83 @@ int main(int argc, char *argv[]) {
     int4 version;
     int init_mode;
 
-    statefile = fopen(statefilename, "r");
-    if (statefile != NULL) {
-	if (read_shell_state(&version)) {
-	    if (skin_arg != NULL) {
-		strncpy(state.skinName, skin_arg, FILENAMELEN - 1);
-		state.skinName[FILENAMELEN - 1] = 0;
+    backup_state_file();
+    state_reader = new ebmlreader(statefilename);
+    if (state_reader->good()) {
+	// State file exists, but what is it?
+	uint4 id, size;
+	if (state_reader->get_element(&id, &size) && id = STATE_ID_EBML) {
+	    // EBML state file (version 19 or later)
+	    // Check EBML header
+	    while (state_reader->good() && state_reader->depth() > 0) {
+		if (!state_reader->get_element(&id, &size))
+		    break;
+		if (id == STATE_ID_DocType) {
+		    char *buf = (char *) malloc(size + 1);
+		    if (!get_string_body(size, buf)) {
+			free(buf);
+			break;
+		    }
+		    if (strcmp(buf, "Free42") != 0) {
+			free(buf);
+			state_reader->set_bad();
+			break;
+		    }
+		    free(buf);
+		} else if (id == STATE_ID_DocTypeVersion) {
+		    // Not sure what to do with this yet
+		    if (!state_reader->skip(size))
+			break;
+		} else if (id == STATE_ID_DocTypeReadVersion) {
+		    uint8 read_version;
+		    if (!state_reader->get_int_body(size, &read_version)) {
+			// TODO: report version mismatch, don't just say "corrupt"
+			state_reader->set_bad();
+			break;
+		    }
+		} else {
+		    // Not interested; skip
+		    if (!state_reader->skip(size))
+			break;
+		}
 	    }
-	    init_mode = 1;
-	} else {
+	    if (!state_reader->good())
+		goto state_bad;
+
+	    // Initialize shell state. Always do clean init when reading state file from a different version.
 	    init_shell_state(-1);
-	    init_mode = 2;
+	    bool shell_state_matches;
+	    if (!state_reader->get_element(&id, &size) || id != STATE_ID_PLATFORM)
+		goto state_bad;
+	    char *buf = (char *) malloc(size + 1);
+	    if (!state_reader->get_string_body(size, buf)) {
+		free(buf);
+		goto state_bad;
+	    }
+	    shell_state_matches = strcmp(buf, PLATFORM) == 0;
+	    free(buf);
+	    if (!state_reader->get_element(&id, &size) || id != STATE_ID_SHELL_STATE_VERSION)
+		goto state_bad;
+	    int8
+
+	} else {
+	    // Non-EBML state file (versions 1..18)
+	    delete state_reader;
+	    state_reader = NULL;
+	    statefile = fopen(statefilename, "r");
+	    if (read_shell_state(&version)) {
+		if (skin_arg != NULL) {
+		    strncpy(state.skinName, skin_arg, FILENAMELEN - 1);
+		    state.skinName[FILENAMELEN - 1] = 0;
+		}
+		init_mode = 1;
+	    } else {
+		init_shell_state(-1);
+		init_mode = 2;
+	    }
 	}
     } else {
+	// State file does not exist
 	init_shell_state(-1);
 	init_mode = 0;
     }
@@ -590,6 +660,28 @@ int main(int argc, char *argv[]) {
     }
     gtk_main();
     return 0;
+}
+
+static void backup_state_file() {
+    FILE *in = fopen(statefilename, "r");
+    if (in == NULL)
+	return;
+    int baklen = strlen(statefilename) + 5;
+    char *bakfilename = (char *) malloc(baklen);
+    strcpy(bakfilename, statefilename);
+    strcat(bakfilename, ".bak");
+    FILE *out = fopen(bakfilename, "w");
+    free(bakfilename);
+    if (out == NULL) {
+	fclose(in);
+	return;
+    }
+    char buf[1024];
+    int n;
+    while ((n = fread(buf, 1, 1024, in)) > 0)
+	fwrite(buf, 1, n, out);
+    fclose(in);
+    fclose(out);
 }
 
 keymap_entry *parse_keymap_entry(char *line, int lineno) {
@@ -1980,21 +2072,6 @@ int4 shell_read_saved_state(void *buf, int4 bufsize) {
 	    return -1;
 	} else
 	    return n;
-    }
-}
-
-bool shell_write_saved_state(const void *buf, int4 nbytes) {
-    if (statefile == NULL)
-	return false;
-    else {
-	int4 n = fwrite(buf, 1, nbytes, statefile);
-	if (n != nbytes) {
-	    fclose(statefile);
-	    remove(statefilename);
-	    statefile = NULL;
-	    return false;
-	} else
-	    return true;
     }
 }
 

@@ -19,38 +19,33 @@
 #define EBMLREADER_H
 
 #include <stdint.h>
-#include <ostream>
 #include <stack>
 using namespace std;
+
+class ostream;
 
 class ebmlwriter {
     private:
 	ostream *os;
 	stack<ostream *> os_stack;
-	stack<uint32_t> id_stack;
-	bool chunked;
+	stack<uint4> id_stack;
 
     public:
-	ebmlwriter(ostream *os, bool chunked) {
-	    // Note: we just store a reference to the output stream;
-	    // we do not take ownership. It is the caller's responsibility
-	    // to close the stream when it's done.
-	    this->os = os;
-	    this->chunked = chunked;
-	}
-	void start_element(uint32_t id);
-	void write_vint(uint64_t n);
-	void write_vsint(int64_t n);
+	ebmlwriter(const char *filename);
+	~ebmlwriter();
+	void start_element(uint4 id);
+	void write_vint(uint8 n);
+	void write_vsint(int8 n);
 	void write_unknown();
 	void write_data(int length, const char *buf);
 	void end_element();
 
-	void write_int_element(uint32_t id, uint64_t n);
-	void write_float_element(uint32_t id, double f);
-	void write_string_element(uint32_t id, const char *s);
-	void write_data_element(uint32_t id, int length, const char *buf);
+	void write_int_element(uint4 id, uint8 n);
+	void write_float_element(uint4 id, double f);
+	void write_string_element(uint4 id, const char *s);
+	void write_data_element(uint4 id, int length, const char *buf);
 
-	void start_element_with_unknown_length(uint32_t id);
+	void start_element_with_unknown_length(uint4 id);
 };
 
 #endif
