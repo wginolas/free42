@@ -1,0 +1,14 @@
+diff -uNr ../orig/LIBRARY/makefile.iml_head ./LIBRARY/makefile.iml_head
+--- ../orig/LIBRARY/makefile.iml_head	2011-07-12 17:26:21.000000000 +0200
++++ ./LIBRARY/makefile.iml_head	2019-11-22 19:15:17.787908224 +0100
+@@ -522,8 +522,8 @@
+     endif
+ endif
+ 
+-CC_NAME_LIST  := icc icl gcc cl cc
+-CC_TYPE_LIST  := gcc cl  gcc cl gcc
++CC_NAME_LIST  := icc icl gcc cl cc emcc
++CC_TYPE_LIST  := gcc cl  gcc cl gcc gcc
+ CC_TYPES      := gcc cl
+ INTEL_CC_LIST := icc icl
+ 
