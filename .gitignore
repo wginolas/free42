@@ -333,3 +333,4 @@
 /web/*.d
 /web/free42.js
 /web/free42.wasm
+/web/free42.html
