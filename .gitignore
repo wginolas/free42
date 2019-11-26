@@ -329,4 +329,7 @@
 /web/skin2cc.conf
 /web/symlinks
 /web/IntelRDFPMathLib20U1
-
+/web/*.bc
+/web/*.d
+/web/free42.js
+/web/free42.wasm

@@ -1,3 +1,5 @@
+.PHONY: clean
+
 CFLAGS = -MMD \
 	 -Wall \
 	 -Wno-parentheses \
@@ -22,7 +24,7 @@ CXXFLAGS = $(CFLAGS) \
 	 -fno-rtti \
 	 -D_WCHAR_T_DEFINED
 
-LIBS = 
+LIBS = libbid.a
 
 SRCS = shell_main.cc shell_skin.cc skins.cc keymap.cc shell_loadimage.cc \
 	shell_spool.cc core_main.cc core_commands1.cc core_commands2.cc \
@@ -31,47 +33,31 @@ SRCS = shell_main.cc shell_skin.cc skins.cc keymap.cc shell_loadimage.cc \
 	core_helpers.cc core_keydown.cc core_linalg1.cc core_linalg2.cc \
 	core_math1.cc core_math2.cc core_phloat.cc core_sto_rcl.cc \
 	core_tables.cc core_variables.cc
-OBJS = shell_main.o shell_skin.o skins.o keymap.o shell_loadimage.o \
-	shell_spool.o core_main.o core_commands1.o core_commands2.o \
-	core_commands3.o core_commands4.o core_commands5.o \
-	core_commands6.o core_commands7.o core_display.o core_globals.o \
-	core_helpers.o core_keydown.o core_linalg1.o core_linalg2.o \
-	core_math1.o core_math2.o core_phloat.o core_sto_rcl.o \
-	core_tables.o core_variables.o
+OBJS = core_main.bc core_commands1.bc core_commands2.bc \
+	core_commands3.bc core_commands4.bc core_commands5.bc \
+	core_commands6.bc core_commands7.bc core_display.bc core_globals.bc \
+	core_helpers.bc core_keydown.bc core_linalg1.bc core_linalg2.bc \
+	core_math1.bc core_math2.bc core_phloat.bc core_sto_rcl.bc \
+	core_tables.bc core_variables.bc
 
 CXXFLAGS += -DBCD_MATH
 EXE = free42.js
 
 $(EXE): $(OBJS)
-	$(CXX) -o $(EXE) $(LDFLAGS) $(OBJS) $(LIBS)
+	emcc -o $(EXE) $(LDFLAGS) $(OBJS) $(LIBS)
 
 $(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf: symlinks
 
-.cc.o:
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-readtest.o: readtest.c
-	$(CC) $(CFLAGS) -I IntelRDFPMathLib20U1/TESTS -D__intptr_t_defined -DLINUX -c -o $@ $<
-
-skin2cc: skin2cc.cc
-	$(CXX) -o skin2cc skin2cc.cc
-
-skins.cc: skin2cc skin2cc.conf
-	./skin2cc
-
-keymap2cc: keymap2cc.cc
-	$(CXX) -o keymap2cc keymap2cc.cc
-
-keymap.cc: keymap2cc keymap.txt
-	./keymap2cc
+%.bc: %.cc
+	emcc $(CXXFLAGS) -c -o $@ $<
 
 symlinks:
 	for fn in `cd ../common; /bin/ls`; do ln -s ../common/$$fn; done
 	sh ./build-intel-lib.sh
 	touch symlinks
 
-clean: FORCE
-	rm -f *.o *.d *.i *.ii *.s symlinks core.*
+clean:
+	rm -f `find . -type l`
+	rm -f *.o *.bc *.d *.i *.ii *.s symlinks core.*
 	rm -rf IntelRDFPMathLib20U1
 
-FORCE:
