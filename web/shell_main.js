@@ -4,15 +4,17 @@ var Module = {
 };
 
 let ctx;
-let imageData;
-function shellInit(screenPtr) {
+let screenPtr;
+function shellInit(sPtr) {
     console.log('JS Shell Init');
     const canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
-    const view = new Uint8ClampedArray(Module.HEAPU8, screenPtr, 131 * 16 * 4);
-    imageData = new ImageData(view, 131, 16);
+    screenPtr = sPtr;
 }
 
 function updateScreen() {
+    let data = Module.HEAPU8.slice(screenPtr, screenPtr + 131 * 16 * 4);
+    let imageData = ctx.getImageData(0, 0, 131, 16);
+    imageData.data.set(data);
     ctx.putImageData(imageData, 0, 0);
 }
