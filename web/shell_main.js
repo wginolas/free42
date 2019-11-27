@@ -1,3 +1,6 @@
+const SKIN = 'Ehrling42sl.layout';
+const SKIN_IMG = 'Ehrling42sl.gif';
+
 var Module = {
     'print': function(text) { console.log('stdout: ' + text); },
     'printErr': function(text) { console.log('stderr: ' + text); }
@@ -18,3 +21,15 @@ function updateScreen() {
     imageData.data.set(data);
     ctx.putImageData(imageData, 0, 0);
 }
+
+async function loadSkin() {
+    try {
+        const response = await fetch(SKIN);
+        const text = await response.text();
+        console.log(text);
+    } catch (e) {
+        console.log('Could not load skin', e);
+    }
+}
+
+loadSkin();

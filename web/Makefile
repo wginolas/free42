@@ -39,26 +39,27 @@ OBJS = shell_main.bc core_main.bc core_commands1.bc core_commands2.bc \
 	core_helpers.bc core_keydown.bc core_linalg1.bc core_linalg2.bc \
 	core_math1.bc core_math2.bc core_phloat.bc core_sto_rcl.bc \
 	core_tables.bc core_variables.bc
-JS_SRCS = shell_main.js
+JS_SRCS = shell_main.js redom.js
 
 CXXFLAGS += -DBCD_MATH
 EXE = free42.js
 
 $(EXE): $(OBJS) $(JS_SRCS)
-	emcc -o $(EXE) $(LDFLAGS) $(OBJS) $(LIBS) --pre-js $(JS_SRCS)
+	emcc -o $(EXE) $(LDFLAGS) $(OBJS) $(LIBS) $(foreach js,$(JS_SRCS),--pre-js $(js))
 
-$(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf: symlinks
+$(SRCS): symlinks
 
 %.bc: %.cc
 	emcc $(CXXFLAGS) -c -o $@ $<
 
 symlinks:
 	for fn in `cd ../common; /bin/ls`; do ln -s ../common/$$fn; done
+	ln -s ../skins/Ehrling42sl.layout .
+	ln -s ../skins/Ehrling42sl.gif .
 	sh ./build-intel-lib.sh
 	touch symlinks
 
 clean:
 	rm -f `find . -type l`
-	rm -f *.o *.bc *.d *.i *.ii *.s symlinks core.*
+	rm -f *.o *.bc *.d *.i *.ii *.s symlinks core.* *.layout *.gif
 	rm -rf IntelRDFPMathLib20U1
-
