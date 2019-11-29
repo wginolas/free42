@@ -39,7 +39,7 @@ OBJS = shell_main.bc core_main.bc core_commands1.bc core_commands2.bc \
 	core_helpers.bc core_keydown.bc core_linalg1.bc core_linalg2.bc \
 	core_math1.bc core_math2.bc core_phloat.bc core_sto_rcl.bc \
 	core_tables.bc core_variables.bc
-JS_SRCS = shell_main.js redom.js
+JS_SRCS = redom.js shell_main.js
 
 CXXFLAGS += -DBCD_MATH
 EXE = free42.js
