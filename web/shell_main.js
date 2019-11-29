@@ -57,8 +57,6 @@ class Screen {
         this.el = redom.el('canvas');
         this.origCtx = this.orig.getContext('2d');
         this.scaledCtx = this.el.getContext('2d');
-        this.scaledCtx.imageSmoothingEnabled = false;
-        this.scaledCtx.mozImageSmoothingEnabled = false;
         this.data = {};
     }
 
@@ -91,6 +89,7 @@ class Screen {
             let imageData = this.origCtx.getImageData(0, 0, 131, 16);
             imageData.data.set(data.data);
             this.origCtx.putImageData(imageData, 0, 0);
+            this.scaledCtx.imageSmoothingEnabled = false;
             this.scaledCtx.drawImage(this.orig, 0, 0);
         }
 
@@ -115,6 +114,10 @@ class Free42Shell {
             let newData = assign(this.data, 'housing.skin', skin);
             newData = assign(newData, 'screen.skin', skin);
             this.update(newData);
+            await calcLoaded;
+            const off = skin.display.off;
+            const on = skin.display.on;
+            Module._set_colors(off.r, off.g, off.b, on.r, on.g, on.b);
         } catch (e) {
             console.log('Could not load skin', e);
         }
@@ -137,12 +140,16 @@ class Free42Shell {
     }
 
 }
+const calcLoaded = new Promise((resolve) => {
+    window.onCalcLoaded = resolve;
+});
 
 const free42Shell = new Free42Shell();
 
 function shellInit(sPtr) {
     console.log('JS Shell Init');
     free42Shell.setScreenPtr(sPtr);
+    onCalcLoaded();
 }
 
 function updateScreen() {
@@ -167,6 +174,14 @@ function parsePoint(rect) {
     };
 }
 
+function parseColor(color) {
+    return {
+        r: parseInt(color.substring(0, 2), 16),
+        g: parseInt(color.substring(2, 4), 16),
+        b: parseInt(color.substring(4, 6), 16)
+    };
+}
+
 async function loadSkin() {
     const result = {};
 
@@ -184,8 +199,9 @@ async function loadSkin() {
             result.display = parsePoint(line[1]);
             result.display.scaleX = parseInt(line[2], 10);
             result.display.scaleY = parseInt(line[3], 10);
+            result.display.off = parseColor(line[4]);
+            result.display.on = parseColor(line[5]);
         }
-
     }
     return result;
 }
