@@ -32,12 +32,59 @@ function assignImpl(obj, keys, keyI, val) {
     return newObj;
 }
 
-class Housing {
+class Key {
     constructor() {
-        this.el = this.housing = redom.el('div');
+        this.el = redom.el('div', {
+            style: {
+                position: 'absolute',
+                'background-image': 'url("Ehrling42sl.gif")'
+            }
+        });
     }
 
     update(data) {
+        redom.setAttr(this.el, {
+            style: {
+                left: data.pressedPos.x,
+                top: data.pressedPos.y,
+                width: data.pressedPos.width,
+                height: data.pressedPos.height,
+                'background-position': `left -${data.pressedImg.x}px top -${data.pressedImg.y}px`
+            }
+        });
+    }
+}
+
+class Housing {
+    constructor() {
+        this.el = this.housing = redom.el('div', this.key = redom.place(Key));
+        this.pressedKey = null;
+
+        this.housing.onmousedown = evt => {
+            const rect = this.housing.getBoundingClientRect();
+            const x = evt.clientX - rect.left;
+            const y = evt.clientY - rect.top;
+            const key = this.data.skin.keys.find(k => k.pos.x <= x
+                                                 && k.pos.y <= y
+                                                 && k.pos.x + k.pos.width >= x
+                                                 && k.pos.y + k.pos.height >= y);
+
+            if (!key) {
+                return;
+            }
+
+            this.pressedKey = key;
+            this.update(this.data);
+        };
+
+        this.housing.onmouseup = evt => {
+            this.pressedKey = null;
+            this.update(this.data);
+        };
+    }
+
+    update(data) {
+        this.data = data;
         if (!data || !data.skin) {
             return;
         }
@@ -48,6 +95,12 @@ class Housing {
                 'background-image': 'url("Ehrling42sl.gif")'
             }
         });
+
+        if (this.pressedKey) {
+            this.key.update(true, this.pressedKey);
+        } else {
+            this.key.update(false);
+        }
     }
 }
 
@@ -183,15 +236,15 @@ function parseColor(color) {
 }
 
 async function loadSkin() {
-    const result = {};
+    const result = {keys: []};
 
     const response = await fetch(SKIN);
     const text = await response.text();
-    console.log(text);
 
     const lines = text
           .split('\n')
-          .map(l => l.trim().replace(/\s+/, ' ').split(' '));
+          .map(l => l.trim().replace(/\s+/g, ' ').split(' '));
+
     for (const line of lines) {
         if (line.length == 2 && line[0] == 'Skin:') {
             result.skin = parseRect(line[1]);
@@ -201,6 +254,13 @@ async function loadSkin() {
             result.display.scaleY = parseInt(line[3], 10);
             result.display.off = parseColor(line[4]);
             result.display.on = parseColor(line[5]);
+        } else if (line.length == 5 && line[0] == 'Key:') {
+            const key = {};
+            key.key = parseInt(line[1], 10);
+            key.pos = parseRect(line[2]);
+            key.pressedPos = parseRect(line[3]);
+            key.pressedImg = parsePoint(line[4]);
+            result.keys.push(key);
         }
     }
     return result;
