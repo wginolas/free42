@@ -58,7 +58,6 @@ class Key {
 class Housing {
     constructor() {
         this.el = this.housing = redom.el('div', this.key = redom.place(Key));
-        this.pressedKey = null;
 
         this.housing.onmousedown = evt => {
             const rect = this.housing.getBoundingClientRect();
@@ -73,13 +72,11 @@ class Housing {
                 return;
             }
 
-            this.pressedKey = key;
-            this.update(this.data);
+            this.data.onKeyDown(key.key);
         };
 
         this.housing.onmouseup = evt => {
-            this.pressedKey = null;
-            this.update(this.data);
+            this.data.onKeyUp();
         };
     }
 
@@ -96,8 +93,9 @@ class Housing {
             }
         });
 
-        if (this.pressedKey) {
-            this.key.update(true, this.pressedKey);
+        if (this.data.pressedKey) {
+            const key = this.data.skin.keys.find(k => k.key === this.data.pressedKey);
+            this.key.update(true, key);
         } else {
             this.key.update(false);
         }
@@ -156,6 +154,9 @@ class Free42Shell {
                            this.housing = new Housing(),
                            this.screen = new Screen());
         this.data = {};
+        this.data = assign(this.data, 'housing.onKeyDown', key => this.onKeyDown(key));
+        this.data = assign(this.data, 'housing.onKeyUp', () => this.onKeyUp());
+        this.data = assign(this.data, 'housing.pressedKey', 0);
 
         this.loadSkin();
     }
@@ -174,6 +175,14 @@ class Free42Shell {
         } catch (e) {
             console.log('Could not load skin', e);
         }
+    }
+
+    onKeyDown(key) {
+        this.update(assign(this.data, 'housing.pressedKey', key));
+    }
+
+    onKeyUp(key) {
+        this.update(assign(this.data, 'housing.pressedKey', 0));
     }
 
     setScreenPtr(screenPtr) {
