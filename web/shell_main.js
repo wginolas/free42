@@ -179,10 +179,12 @@ class Free42Shell {
 
     onKeyDown(key) {
         this.update(assign(this.data, 'housing.pressedKey', key));
+        console.log(keyDown(key));
     }
 
     onKeyUp(key) {
         this.update(assign(this.data, 'housing.pressedKey', 0));
+        console.log(keyUp());
     }
 
     setScreenPtr(screenPtr) {
@@ -273,6 +275,17 @@ async function loadSkin() {
         }
     }
     return result;
+}
+
+function keyDown(key) {
+    Module._key_down(key);
+    return window.keyDownResult;
+}
+
+function keyUp() {
+    return {
+        callAgain: Module._key_up()
+    };
 }
 
 redom.mount(document.body, free42Shell);

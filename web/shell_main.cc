@@ -27,20 +27,37 @@ int main() {
 }
 
 extern "C" {
-void EMSCRIPTEN_KEEPALIVE set_colors(uint8_t newOffRed,
-                                     uint8_t newOffGreen,
-                                     uint8_t newOffBlue,
-                                     uint8_t newOnRed,
-                                     uint8_t newOnGreen,
-                                     uint8_t newOnBlue) {
-  offRed = newOffRed;
-  offGreen = newOffGreen;
-  offBlue = newOffBlue;
-  onRed = newOnRed;
-  onGreen = newOnGreen;
-  onBlue = newOnBlue;
-  core_repaint_display();
-}
+  void EMSCRIPTEN_KEEPALIVE set_colors(uint8_t newOffRed,
+                                       uint8_t newOffGreen,
+                                       uint8_t newOffBlue,
+                                       uint8_t newOnRed,
+                                       uint8_t newOnGreen,
+                                       uint8_t newOnBlue) {
+    offRed = newOffRed;
+    offGreen = newOffGreen;
+    offBlue = newOffBlue;
+    onRed = newOnRed;
+    onGreen = newOnGreen;
+    onBlue = newOnBlue;
+    core_repaint_display();
+  }
+
+  void EMSCRIPTEN_KEEPALIVE key_down(int key) {
+    int enqueued;
+    int repeat;
+    int call_again = core_keydown(key, &enqueued, &repeat);
+
+    EM_ASM({
+        window.keyDownResult = {};
+        window.keyDownResult.callAgain = $0;
+        window.keyDownResult.enqueued = $1;
+        window.keyDownResult.repeat = $2;
+      }, call_again, enqueued, repeat);
+  }
+
+  int EMSCRIPTEN_KEEPALIVE key_up() {
+    return core_keyup();
+  }
 }
 
 void shell_print(const char *text, int length,
@@ -101,5 +118,21 @@ int shell_decimal_point() {
 }
 
 void shell_get_time_date(uint4 *time, uint4 *date, int *weekday) {
+  
+}
+
+void shell_delay(int duration) {
+  
+}
+
+uint4 shell_get_mem() {
+  return 10 * 1024 * 1024;
+};
+
+int shell_wants_cpu() {
+  return 0;
+}
+
+void shell_request_timeout3(int delay) {
   
 }
