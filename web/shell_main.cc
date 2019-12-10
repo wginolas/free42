@@ -111,7 +111,9 @@ int8 shell_random_seed() {
 }
 
 void shell_annunciators(int updn, int shf, int prt, int run, int g, int rad) {
-  printf("shell_annunciators not implemented\n");
+  EM_ASM({
+      updateAnnunciators([$0, $1, $2, $3, $4]);
+    }, updn, shf, prt, run, g, rad);
 }
 
 uint4 shell_milliseconds() {

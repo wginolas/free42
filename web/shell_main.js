@@ -27,9 +27,27 @@ function assignImpl(obj, keys, keyI, val) {
         newObj = Object.assign({}, obj);
     }
 
-    newObj[key] = assignImpl(newObj[key], keys, keyI+1, val);
+    newObj[key] = assignImpl(newObj[key], keys, keyI + 1, val);
 
     return newObj;
+}
+
+function get(obj, key, defaultValue) {
+    if (typeof key === 'string') {
+        key = key.split('.');
+    }
+
+    for (const k of key) {
+        if (obj == null) {
+            return defaultValue;
+        }
+        obj = obj[k];
+    }
+
+    if (obj == null) {
+        return defaultValue;
+    }
+    return obj;
 }
 
 class Key {
@@ -45,28 +63,49 @@ class Key {
     update(data) {
         redom.setAttr(this.el, {
             style: {
-                left: data.pressedPos.x,
-                top: data.pressedPos.y,
-                width: data.pressedPos.width,
-                height: data.pressedPos.height,
-                'background-position': `left -${data.pressedImg.x}px top -${data.pressedImg.y}px`
+                left: data.pos.x,
+                top: data.pos.y,
+                width: data.pos.width,
+                height: data.pos.height,
+                'background-position': `left -${data.img.x}px top -${data.img.y}px`
             }
         });
     }
 }
 
+class Annunciators {
+    constructor() {
+        this.el = redom.list('div', Key);
+    }
+
+    update(data) {
+        if (!data.annunciators || !data.skin) {
+            return;
+        }
+
+        this.el.update(
+            data.annunciators
+                .map((a, i) => a ? data.skin.annunciators[i + 1] : null)
+                .filter(a => a)
+        );
+
+    }
+}
+
 class Housing {
     constructor() {
-        this.el = this.housing = redom.el('div', this.key = redom.place(Key));
+        this.el = this.housing = redom.el('div',
+            this.key = redom.place(Key),
+            this.annunciators = new Annunciators());
 
         this.housing.onmousedown = evt => {
             const rect = this.housing.getBoundingClientRect();
             const x = evt.clientX - rect.left;
             const y = evt.clientY - rect.top;
             const key = this.data.skin.keys.find(k => k.pos.x <= x
-                                                 && k.pos.y <= y
-                                                 && k.pos.x + k.pos.width >= x
-                                                 && k.pos.y + k.pos.height >= y);
+                && k.pos.y <= y
+                && k.pos.x + k.pos.width >= x
+                && k.pos.y + k.pos.height >= y);
 
             if (!key) {
                 return;
@@ -75,7 +114,7 @@ class Housing {
             this.data.onKeyDown(key.key);
         };
 
-        this.housing.onmouseup = evt => {
+        this.housing.onmouseup = () => {
             this.data.onKeyUp();
         };
     }
@@ -95,16 +134,18 @@ class Housing {
 
         if (this.data.pressedKey) {
             const key = this.data.skin.keys.find(k => k.key === this.data.pressedKey);
-            this.key.update(true, key);
+            this.key.update(true, { pos: key.pressedPos, img: key.pressedImg });
         } else {
             this.key.update(false);
         }
+
+        this.annunciators.update(data);
     }
 }
 
 class Screen {
     constructor() {
-        this.orig = redom.el('canvas', {width: 131, height: 16});
+        this.orig = redom.el('canvas', { width: 131, height: 16 });
         this.el = redom.el('canvas');
         this.origCtx = this.orig.getContext('2d');
         this.scaledCtx = this.el.getContext('2d');
@@ -150,9 +191,9 @@ class Screen {
 
 class Free42Shell {
     constructor() {
-        this.el = redom.el('div', {style: {position: 'relative'}},
-                           this.housing = new Housing(),
-                           this.screen = new Screen());
+        this.el = redom.el('div', { style: { position: 'relative' } },
+            this.housing = new Housing(),
+            this.screen = new Screen());
         this.data = {};
         this.data = assign(this.data, 'housing.onKeyDown', key => this.onKeyDown(key));
         this.data = assign(this.data, 'housing.onKeyUp', () => this.onKeyUp());
@@ -182,7 +223,7 @@ class Free42Shell {
         console.log(keyDown(key));
     }
 
-    onKeyUp(key) {
+    onKeyUp() {
         this.update(assign(this.data, 'housing.pressedKey', 0));
         console.log(keyUp());
     }
@@ -195,6 +236,16 @@ class Free42Shell {
         const screenPtr = this.data.screenPtr;
         const screenData = Module.HEAPU8.slice(screenPtr, screenPtr + 131 * 16 * 4);
         this.update(assign(this.data, 'screen.data', screenData));
+    }
+
+    updateAnnunciators(annunciators) {
+        const newAnnunciators = get(this.data, 'housing.annunciators', annunciators).slice();
+        annunciators.forEach((a, i) => {
+            if (a >= 0) {
+                newAnnunciators[i] = a;
+            }
+        });
+        this.update(assign(this.data, 'housing.annunciators', newAnnunciators));
     }
 
     update(data) {
@@ -218,6 +269,10 @@ function shellInit(sPtr) {
 
 function updateScreen() {
     free42Shell.updateScreen();
+}
+
+function updateAnnunciators(annunciators) {
+    free42Shell.updateAnnunciators(annunciators);
 }
 
 function parseRect(rect) {
@@ -247,14 +302,14 @@ function parseColor(color) {
 }
 
 async function loadSkin() {
-    const result = {keys: []};
+    const result = { keys: [], annunciators: [] };
 
     const response = await fetch(SKIN);
     const text = await response.text();
 
     const lines = text
-          .split('\n')
-          .map(l => l.trim().replace(/\s+/g, ' ').split(' '));
+        .split('\n')
+        .map(l => l.trim().replace(/\s+/g, ' ').split(' '));
 
     for (const line of lines) {
         if (line.length == 2 && line[0] == 'Skin:') {
@@ -272,6 +327,12 @@ async function loadSkin() {
             key.pressedPos = parseRect(line[3]);
             key.pressedImg = parsePoint(line[4]);
             result.keys.push(key);
+        } else if (line.length == 4 && line[0] == 'Annunciator:') {
+            const annunciator = {};
+            const i = parseInt(line[1], 10);
+            annunciator.pos = parseRect(line[2]);
+            annunciator.img = parsePoint(line[3]);
+            result.annunciators[i] = annunciator;
         }
     }
     return result;
