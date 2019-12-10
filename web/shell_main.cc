@@ -58,6 +58,11 @@ extern "C" {
   int EMSCRIPTEN_KEEPALIVE key_up() {
     return core_keyup();
   }
+
+
+  bool EMSCRIPTEN_KEEPALIVE timeout3(int repaint) {
+    return core_timeout3(repaint);
+  }
 }
 
 void shell_print(const char *text, int length,
@@ -143,5 +148,7 @@ int shell_wants_cpu() {
 }
 
 void shell_request_timeout3(int delay) {
-  printf("shell_request_timeout3 not implemented\n");
+  EM_ASM({
+      free42Shell.requestTimeout3($0);
+    }, delay);
 }

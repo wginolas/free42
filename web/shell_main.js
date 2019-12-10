@@ -189,6 +189,34 @@ class Screen {
     }
 }
 
+class Timeout {
+    constructor(callback) {
+        this.callback = callback;
+        this.id = 0;
+    }
+
+    start(delay) {
+        this.cancel();
+        this.id = setTimeout(this.runCallback, delay);
+    }
+
+    runCallback = () => {
+        this.id = 0;
+        this.callback(false);
+    }
+
+    cancel(runNow) {
+        if (this.id > 0) {
+            clearTimeout(this.id);
+            this.id = 0;
+            if (runNow) {
+                this.callback(true);
+            }
+        }
+    }
+}
+
+
 class Free42Shell {
     constructor() {
         this.el = redom.el('div', { style: { position: 'relative' } },
@@ -199,7 +227,13 @@ class Free42Shell {
         this.data = assign(this.data, 'housing.onKeyUp', () => this.onKeyUp());
         this.data = assign(this.data, 'housing.pressedKey', 0);
 
+        this.timeout3 = new Timeout(this.onTimeout3);
+
         this.loadSkin();
+    }
+
+    onTimeout3 = (canceled) => {
+        const resume = Module._timeout3(canceled ? 0 : 1);
     }
 
     async loadSkin() {
@@ -218,7 +252,12 @@ class Free42Shell {
         }
     }
 
+    requestTimeout3(delay) {
+        this.timeout3.start(delay);
+    }
+
     onKeyDown(key) {
+        this.timeout3.cancel(true);
         this.update(assign(this.data, 'housing.pressedKey', key));
         console.log(keyDown(key));
     }
